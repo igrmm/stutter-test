@@ -16,7 +16,10 @@ public class Stutter extends ApplicationAdapter {
 	float speed = 240f;
 	OrthographicCamera cam;
 	BitmapFont font;
-	float oldDelta = 0f;
+	float accumulator;
+	float deltaBuffer;
+	float oldDelta;
+	float delta;
 
 	@Override
 	public void create() {
@@ -37,23 +40,38 @@ public class Stutter extends ApplicationAdapter {
 
 	@Override
 	public void render() {
-//		float delta = Gdx.graphics.getDeltaTime();
-		float delta = 1f / 60f;
+		smoothDeltaTime();
+
 		ScreenUtils.clear(1, 0, 0, 1);
-		target.x += speed * delta;
 		cam.position.lerp(target, 0.1f);
 		cam.update();
 		batch.setProjectionMatrix(cam.combined);
 		batch.begin();
 		batch.draw(img, target.x - 52f, target.y - 16f);
-		font.draw(batch, "test", 0f, Gdx.graphics.getHeight() - 20f);
+//		font.draw(batch, "" + (target.x - cam.position.x), 0f, Gdx.graphics.getHeight() / 2f);
 		batch.end();
+	}
 
-		System.out.println((target.x - cam.position.x));
-//		if (delta > 1f / 40f || delta < 1f / 80f) {
-//			System.out.println(oldDelta + " " + delta + " " + (oldDelta - delta));
-//			oldDelta = delta;
-//		}
+	public void smoothDeltaTime() {
+		delta += deltaBuffer;
+		oldDelta = delta;
+		delta = Gdx.graphics.getDeltaTime();
+		deltaBuffer = oldDelta - delta;
+		target.x += speed * Math.abs(delta);
+	}
+
+	public void fixedTimeStep() {
+		float delta = 1f / 60f;
+		accumulator += delta;
+		while (accumulator >= 1.0 / 60.0) {
+			target.x += speed * delta;
+			accumulator -= 1.0 / 60.0;
+		}
+	}
+
+	public void variableTimeStep() {
+		float delta = Gdx.graphics.getDeltaTime();
+		target.x += speed * delta;
 	}
 
 	@Override
